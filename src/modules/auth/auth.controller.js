@@ -5,9 +5,6 @@ import asyncHandler from "../../utilis/asyncHandler.js"
 import ApiError from "../../utilis/ApiError.js"
 import ApiResponse from "../../utilis/ApiResponse.js"
 
-// ─────────────────────────────────────────
-// REGISTER
-// ─────────────────────────────────────────
 
 const registerUser = asyncHandler(async (req, res) => {
   // 1. Get data from request body

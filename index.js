@@ -1,16 +1,20 @@
 import dotenv from "dotenv"
-
-// load env first before anything else
 dotenv.config()
 
 import { connectDB } from "./src/config/db.js"
-import {app} from "./src/app.js"
-import redis from "./src/config/redis.js"
+import { app } from "./src/app.js"
+import { connectRabbitMQ } from "./src/config/rabbitmq.js"
 import { startCleanupWorker } from "./src/workers/reservationCleanup.worker.js"
+import { startNotificationWorker } from "./src/workers/notification.worker.js"
+
 connectDB()
-  .then(() => {
-    // start cleanup worker after DB is connected
+  .then(async () => {
+    // connect RabbitMQ before starting workers
+    await connectRabbitMQ()
+
+    // start background workers
     startCleanupWorker()
+    await startNotificationWorker()
 
     app.listen(process.env.PORT || 3000, () => {
       console.log(`Server running on port ${process.env.PORT || 3000} 🚀`)

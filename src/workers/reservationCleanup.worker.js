@@ -8,6 +8,7 @@ import redis from "../config/redis.js"
 // Releases the seat back to available
 // Updates booking status to cancelled
 // ─────────────────────────────────────────────────────
+import { publishMessage } from "../config/rabbitmq.js"
 
 const cleanupExpiredReservations = async () => {
   // get a client for transaction
@@ -63,6 +64,14 @@ const cleanupExpiredReservations = async () => {
       // it may already be expired — that is fine
       // del on non-existent key does nothing
       await redis.del(`reservation:${booking.seat_id}`)
+
+      // notify user their reservation expired
+publishMessage("reservation.expired", {
+  booking_id: booking.booking_id,
+  user_id: booking.user_id,
+  seat_id: booking.seat_id,
+  seat_label: booking.seat_id,
+})
 
       console.log(`Released seat ${booking.seat_id} from expired reservation`)
     }

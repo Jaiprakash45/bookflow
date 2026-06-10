@@ -6,6 +6,8 @@ import ApiResponse from "../../utilis/ApiResponse.js"
 
 import { calculateLockedPrice } from "../../services/pricing.service.js"
 
+import { publishMessage } from "../../config/rabbitmq.js"
+
 const RESERVATION_TTL = parseInt(process.env.RESERVATION_TTL) || 600
 
 // ─────────────────────────────────────────────────────
@@ -269,6 +271,19 @@ const confirmReservation = asyncHandler(async (req, res) => {
 
     await client.query("COMMIT")
 
+    // publish booking confirmed event
+// notification worker picks this up and sends email
+// we don't await this — fire and forget
+// booking success should never depend on notification success
+publishMessage("booking.confirmed", {
+  booking_id: booking.id,
+  user_id: user_id,
+  seat_label: booking.label,
+  category: booking.category,
+  amount_paise: booking.price_paise,
+  event_name: booking.event_name || "BookFlow Event",
+})
+
     // Step 6 — delete Redis reservation key
     // seat is now permanently booked — no need for TTL key
     await redis.del(reservationKey)
@@ -363,6 +378,13 @@ const cancelReservation = asyncHandler(async (req, res) => {
     )
 
     await client.query("COMMIT")
+
+    // publish cancellation event
+publishMessage("booking.cancelled", {
+  booking_id: booking_id,
+  user_id: user_id,
+  seat_label: booking.seat_id,
+})
 
     // Step 6 — delete Redis key
     await redis.del(`reservation:${booking.seat_id}`)

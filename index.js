@@ -6,10 +6,15 @@ import { app } from "./src/app.js"
 import { connectRabbitMQ } from "./src/config/rabbitmq.js"
 import { startCleanupWorker } from "./src/workers/reservationCleanup.worker.js"
 import { startNotificationWorker } from "./src/workers/notification.worker.js"
-
+import { migrate } from "./src/config/migrate.js"
+console.log(process.env.DATABASE_URL)
 connectDB()
   .then(async () => {
+
+     await migrate()
+
     // connect RabbitMQ before starting workers
+
     await connectRabbitMQ()
 
     // start background workers

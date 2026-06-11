@@ -1,0 +1,109 @@
+version: "3.9"
+
+# ── Named volumes ─────────────────────────────────────
+# Data stored here survives container restarts
+# Lives on your host machine outside containers
+volumes:
+  pgdata:
+  redisdata:
+
+# ── Network ───────────────────────────────────────────
+# All services on same network can talk to each other
+# using service name as hostname
+networks:
+  bookflow-network:
+    driver: bridge
+
+services:
+
+  # ── PostgreSQL ───────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: bookflow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       bookflow
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5432:5432"    # expose so you can connect via pgAdmin
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - bookflow-network
+    healthcheck:
+      # check if postgres is ready to accept connections
+      # pg_isready is a built-in PostgreSQL tool
+      test: ["CMD-SHELL", "pg_isready -U postgres -d bookflow"]
+      interval: 10s    # check every 10 seconds
+      timeout: 5s      # wait 5 seconds for response
+      retries: 5       # try 5 times before marking unhealthy
+
+  # ── Redis ─────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: bookflow-redis
+    restart: unless-stopped
+    command: redis-server --save 60 1 --loglevel warning
+    # save 60 1 → save to disk if at least 1 key changed in 60 seconds
+    # this makes Redis data persist across restarts
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    networks:
+      - bookflow-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── RabbitMQ ──────────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: bookflow-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"     # RabbitMQ connection port
+      - "15672:15672"   # management dashboard UI
+    networks:
+      - bookflow-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # ── Node.js API ───────────────────────────────────────
+  api:
+    build:
+      context: .         # build from current directory
+      dockerfile: Dockerfile
+    container_name: bookflow-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.docker      # use Docker specific env file
+    networks:
+      - bookflow-network
+
+    # depends_on with condition → wait for healthy status
+    # api container only starts after all three are healthy
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+    # volume for live code reload during development
+    # comment this out for production
+    volumes:
+      - .:/app
+      - /app/node_modules   # keep container node_modules

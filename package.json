@@ -5,16 +5,17 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-  "dev":      "nodemon index.js",
-  "start":    "node index.js",
-  "migrate":  "node src/config/migrate.js"
-},
+    "dev": "nodemon index.js",
+    "start": "node index.js",
+    "migrate": "node src/config/migrate.js"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "amqplib": "^2.0.1",
     "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "ioredis": "^5.11.1",

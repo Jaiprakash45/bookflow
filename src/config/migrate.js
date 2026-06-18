@@ -169,6 +169,101 @@ const migrate = async () => {
       console.log("✅ Seed data inserted")
     }
 
+
+    // seed a demo event if no events exist
+const existingEvents = await client.query(
+  "SELECT COUNT(*) FROM events"
+)
+
+if (parseInt(existingEvents.rows[0].count) === 0) {
+  console.log("Seeding demo events...")
+
+  // Event 1
+  const event1 = await client.query(`
+    INSERT INTO events (name, description, venue, starts_at)
+    VALUES ($1, $2, $3, $4)
+    RETURNING id
+  `, [
+    "IPL Final 2025",
+    "Mumbai Indians vs Chennai Super Kings",
+    "Wankhede Stadium, Mumbai",
+    "2025-12-15T18:00:00Z"
+  ])
+
+  const seats1 = [
+    ["A1","VIP",500000], ["A2","VIP",500000], ["A3","VIP",500000],
+    ["A4","VIP",500000], ["A5","VIP",500000],
+    ["B1","Premium",300000], ["B2","Premium",300000], ["B3","Premium",300000],
+    ["B4","Premium",300000], ["B5","Premium",300000],
+    ["C1","General",100000], ["C2","General",100000], ["C3","General",100000],
+    ["C4","General",100000], ["C5","General",100000],
+  ]
+
+  for (const [label, category, price] of seats1) {
+    await client.query(
+      `INSERT INTO seats (event_id, label, category, price_paise)
+       VALUES ($1, $2, $3, $4)`,
+      [event1.rows[0].id, label, category, price]
+    )
+  }
+
+  // Event 2
+  const event2 = await client.query(`
+    INSERT INTO events (name, description, venue, starts_at)
+    VALUES ($1, $2, $3, $4)
+    RETURNING id
+  `, [
+    "Arijit Singh Live Concert",
+    "An unforgettable night of soulful music",
+    "Jawaharlal Nehru Stadium, Delhi",
+    "2025-11-20T19:30:00Z"
+  ])
+
+  const seats2 = [
+    ["A1","VIP",800000], ["A2","VIP",800000], ["A3","VIP",800000],
+    ["B1","Premium",400000], ["B2","Premium",400000], ["B3","Premium",400000],
+    ["C1","General",150000], ["C2","General",150000], ["C3","General",150000],
+    ["C4","General",150000],
+  ]
+
+  for (const [label, category, price] of seats2) {
+    await client.query(
+      `INSERT INTO seats (event_id, label, category, price_paise)
+       VALUES ($1, $2, $3, $4)`,
+      [event2.rows[0].id, label, category, price]
+    )
+  }
+
+  // Event 3
+  const event3 = await client.query(`
+    INSERT INTO events (name, description, venue, starts_at)
+    VALUES ($1, $2, $3, $4)
+    RETURNING id
+  `, [
+    "Coldplay World Tour",
+    "Music of the Spheres World Tour — India",
+    "DY Patil Stadium, Mumbai",
+    "2026-01-10T20:00:00Z"
+  ])
+
+  const seats3 = [
+    ["A1","Platinum",1500000], ["A2","Platinum",1500000], ["A3","Platinum",1500000],
+    ["B1","VIP",800000], ["B2","VIP",800000], ["B3","VIP",800000],
+    ["C1","Premium",500000], ["C2","Premium",500000],
+    ["D1","General",200000], ["D2","General",200000], ["D3","General",200000],
+  ]
+
+  for (const [label, category, price] of seats3) {
+    await client.query(
+      `INSERT INTO seats (event_id, label, category, price_paise)
+       VALUES ($1, $2, $3, $4)`,
+      [event3.rows[0].id, label, category, price]
+    )
+  }
+
+  console.log("✅ Demo events seeded")
+}
+
     console.log("✅ All migrations complete")
 
   } catch (error) {
